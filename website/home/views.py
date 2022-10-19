@@ -11,3 +11,7 @@ def homepage(request):
     users = resp.json()
     print(users)
     return render(request, "home.html",{'users': users})
+
+def carga_files(request):
+    
+    return render(request, "carga.html")
