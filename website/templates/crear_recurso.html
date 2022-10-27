@@ -1,62 +1,52 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extra_head %}
-{% comment %} <link rel="stylesheet" type="text/css" href="{% static 'css/home_style.css' %}"/> {% endcomment %}
+<link rel="stylesheet" type="text/css" href="{% static 'css/view-catg.css' %}"/>
 {% endblock %}
-{% block title %}Consultas{% endblock %}
+{% block title %}crear Recurso{% endblock %}
 {% block content %}
 <div class="jumbotron">
     <h1> Crear Recurso</h1>
 </div>
-<div class="container" style="padding:50px;">
-  <form class="row g-3">
-    <div class="col-md-6">
-      <label for="inputEmail4" class="form-label">Email</label>
-      <input type="email" class="form-control" id="inputEmail4">
-    </div>
-    <div class="col-md-6">
-      <label for="inputPassword4" class="form-label">Password</label>
-      <input type="password" class="form-control" id="inputPassword4">
-    </div>
-    <div class="col-12">
-      <label for="inputAddress" class="form-label">Address</label>
-      <input type="text" class="form-control" id="inputAddress" placeholder="1234 Main St">
-    </div>
-    <div class="col-12">
-      <label for="inputAddress2" class="form-label">Address 2</label>
-      <input type="text" class="form-control" id="inputAddress2" placeholder="Apartment, studio, or floor">
-    </div>
-    <div class="col-md-6">
-      <label for="inputCity" class="form-label">City</label>
-      <input type="text" class="form-control" id="inputCity">
-    </div>
-    <div class="col-md-4">
-      <label for="inputState" class="form-label">State</label>
-      <select id="inputState" class="form-select">
-        <option selected>Choose...</option>
-        <option>...</option>
-      </select>
-    </div>
-    <div class="col-md-2">
-      <label for="inputZip" class="form-label">Zip</label>
-      <input type="text" class="form-control" id="inputZip">
-    </div>
-    <div class="col-12">
-      <div class="form-check">
-        <input class="form-check-input" type="checkbox" id="gridCheck">
-        <label class="form-check-label" for="gridCheck">
-          Check me out
-        </label>
+<div id="category" class="rounded" style="padding:50px;">
+  <form class=" row g-2" method="post">
+    {% csrf_token %}
+      <div class="col-md-6">
+        <label for="nombre_recurso" class="form-label">Nombre: </label>
+        <input type="text" class="form-control" name="nombre_recurso" id="nombre_recurso"  value="{{ nombre_recurso }}">
       </div>
-    </div>
-    <div class="col-12">
-      <button type="submit" class="btn btn-primary">Sign in</button>
+      <div class="col-md-3">
+        <label for="abreviatura" class="form-label">abreviatura</label>
+        <input type="text" class="form-control" name="abreviatura" id="abreviatura" value="{{ abreviatura }}">
+      </div>
+      <div class="col-md-3">
+        <label for="metrica" class="form-label">Metrica</label>
+        <input type="text" class="form-control" name="metrica" id="metrica" value="{{ metrica }}">
+      </div>
+
+      <div class="col-md-4">
+        <label for="tipo" class="form-label">Tipo:</label>
+        <input type="text" class="form-control" name="tipo" id="metrica" value="{{ tipo }}">
+      </div>
+      <div class="col-md-2">
+        <label for="costo" class="form-label">Costo</label>
+        <input type="text" class="form-control" name="costo" id="costo"  value="{{ costo }}">
+      </div>
+      <div class="col-md-2">
+        <label for="id" class="form-label">ID</label>
+        <input type="text" class="form-control" name="id" id="id" value="{{ id }}">
+      </div>
+    <div class="col-md-12" style="margin-top:15px">
+      <button type="submit" class="btn btn-primary">Crear Recurso</button>
     </div>
   </form>
 
 </div>
-
-
+{% if message != '' %}
+<script>
+  alert('{{ message }}');
+</script>
+{% endif %}
 
 
 {% endblock %}

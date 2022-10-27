@@ -42,6 +42,8 @@ def PostListaConfig():
     global Recursos
     global Categorias
     global Clientes
+    global Configuraciones_glob
+    global Instancias_glob
     
     #get xml info
     configuracion = request.json['data']
@@ -70,6 +72,7 @@ def PostListaConfig():
     count_categ = 0
     for cat in categorias:
         Configuraciones = [] #lista
+        
         count_categ += 1
         id_categoria = cat.attributes['id'].value
         nombre_categoria = cat.getElementsByTagName('nombre')[0]
@@ -101,6 +104,7 @@ def PostListaConfig():
 
             new_config = Configuracion(id_config,nombre_config.firstChild.data,dscr_config.firstChild.data,list_rec_config)
             Configuraciones.append(new_config)
+            Configuraciones_glob.append(new_config)
             
         new_categoria = Categoria(id_categoria,nombre_categoria.firstChild.data,descr_categoria.firstChild.data,carga_de_trabajo.firstChild.data,Configuraciones)
         Categorias.append(new_categoria) 
@@ -134,6 +138,7 @@ def PostListaConfig():
             
             new_instancia = Instancia(id_instance,id_configuracion.firstChild.data,nombre.firstChild.data,fecha_inicio.firstChild.data,fecha_final,estado.firstChild.data)
             Instancias.append(new_instancia)
+            Instancias_glob.append(new_instancia)
             
         new_cliente = Cliente(NIT,nombre_cliente.firstChild.data,usuario.firstChild.data,clave.firstChild.data,direccion.firstChild.data,email.firstChild.data,Instancias)
         Clientes.append(new_cliente)
@@ -223,8 +228,8 @@ def get_categorias():
             recursos_list = []
             for rec in list_recu:
                 Dato_rec ={
-                    'id':rec['id_recurso'],
-                    'Cantidad':rec['cantidad'],         
+                    'id_recurso':rec['id_recurso'],
+                    'cantidad':rec['cantidad'],         
                 }
                 recursos_list.append(Dato_rec)
             
@@ -307,18 +312,59 @@ def get_recursos():
     respuesta = jsonify(list_recursos)
     return (respuesta)
 
-#Crear Configuracion
+#obtener configuraciones
+@app.route('/get-configuraciones', methods=['GET'])
+def get_configs():
+    global Configuraciones_glob
+    
+    list_configuraciones = []
+    
+    for conf in Configuraciones_glob:
+        
+        list_recu = conf.lista_recursos 
+        recursos_list = []
+        for rec in list_recu:
+            Dato_rec ={
+                'id_recurso':rec['id_recurso'],
+                'cantidad':rec['cantidad'],         
+            }
+            recursos_list.append(Dato_rec)
+            
+        Dato_conf ={
+        'id':conf.id_config,
+        'nombre':conf.nombre_config,
+        'descripcion':conf.descripcion_config,
+        'recursos': recursos_list,          
+        }
+        list_configuraciones.append(Dato_conf)
+            
+    respuesta = jsonify(list_configuraciones)
+    return (respuesta)
+
+#Crear Configuracion django
 @app.route('/crear-configuracion', methods=['POST'])
 def createConfiguracion():
-    global Categorias
-    id = request.json['id_categ']
-    nombre = request.json['nombre_categ']
-    descripcion_categ = request.json['descripcion_categ']
-    carga_de_trabajo = request.json['carga_de_trabajo']
-    lista_config = request.json['lista_config']
+    global Configuraciones_glob
     
-    nuevaConfig = Categoria(id,nombre, descripcion_categ, carga_de_trabajo,lista_config)
-    Categorias.append(nuevaConfig)
+    configuracion = request.json['data']
+    
+    
+    id = configuracion['id']
+    nombre = configuracion['nombre']
+    descripcion= configuracion['descripcion']
+    recursos = configuracion['recursos']
+    cantidad = configuracion['cantidad']
+    
+    recursos_list =[]
+    
+    Dato_rec ={
+        'id_recurso':recursos,
+        'cantidad':cantidad,
+    }
+    recursos_list.append(Dato_rec) 
+    
+    nuevaConfig = Configuracion(id,nombre,descripcion,recursos_list)
+    Configuraciones_glob.append(nuevaConfig)
     
     Dato = {
                 'message': 'Configuracion agregada Exitosamente',
@@ -327,16 +373,50 @@ def createConfiguracion():
     respuesta = jsonify(Dato)
     return (respuesta)
 
+#Crear Configuracion postman
+@app.route('/crear-configuracion2', methods=['POST'])
+def createConfiguracion2():
+    global Configuraciones_glob
+    
+    configuracion = request.json['data']
+    
+    id = configuracion['id']
+    nombre = configuracion['nombre']
+    descripcion= configuracion['descripcion']
+    recursos = configuracion['recursos']
+    
+    recursos_list =[]
+    for rec in recursos:
+        Dato_rec ={
+            'id_recurso':rec['id_recurso'],
+            'cantidad':rec['cantidad'],         
+        }
+        recursos_list.append(Dato_rec)           
+    
+    nuevaConfig = Configuracion(id,nombre,descripcion,recursos_list)
+    Configuraciones_glob.append(nuevaConfig)
+    
+    Dato = {
+                'message': 'Configuracion agregada Exitosamente',
+                'state':200
+            }
+    respuesta = jsonify(Dato)
+    return (respuesta) 
+
 #Crear Recurso
 @app.route('/crear-recurso', methods=['POST'])
 def createRecurso():
     global Recursos
-    id = request.json['id']
-    nombre = request.json['nombre']
-    abreviatura = request.json['abreviatura']
-    metrica = request.json['metrica']
-    tipo = request.json['tipo']
-    costo = request.json['costo']
+    
+    
+    recurso = request.json['data']
+    
+    id = recurso['id']
+    nombre = recurso['nombre']
+    abreviatura = recurso['abreviatura']
+    metrica = recurso['metrica']
+    tipo = recurso['tipo']
+    costo = recurso['costo']
     
     nuevoRecurso = Recurso(id,nombre,abreviatura, metrica, tipo,costo)
     Recursos.append(nuevoRecurso)
@@ -348,6 +428,36 @@ def createRecurso():
     respuesta = jsonify(Dato)
     return (respuesta)
 
+#Crear Categoria postman
+@app.route('/crear-categ', methods=['POST'])
+def createCateg():
+    global Categorias
+    global Configuraciones_glob
+    
+    categoria = request.json['data']
+    
+    id = categoria['id']
+    nombre = categoria['nombre']
+    descripcion = categoria['descripcion']
+    carga = categoria['carga']
+    configuraciones = categoria['configuraciones']
+    
+    lista_conf = []
+    
+    for conf in configuraciones:
+        for conf_g in Configuraciones_glob:
+            if conf['id'] == conf_g.id_config:
+                lista_conf.append(conf_g)
+                break
+    
+    nuevaCateg = Categoria(id,nombre,descripcion, carga,lista_conf)
+    Categorias.append(nuevaCateg)
+    Dato = {
+            'message': 'Categoria agregada Exitosamente',
+            'state':200
+            }
+    respuesta = jsonify(Dato)
+    return (respuesta)
 
 
 if __name__ == '__main__':
