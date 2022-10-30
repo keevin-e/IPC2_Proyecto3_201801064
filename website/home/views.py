@@ -63,6 +63,11 @@ def consulta_configuraciones(request):
     data = resp.json()
     return render(request, "view-config.html",{'configuraciones': data})
 
+def consulta_instancias(request):
+    resp= requests.get('http://127.0.0.1:5000/get-instancias')
+    data = resp.json()
+    return render(request, "view-instances.html",{'instances': data})
+
 def creacion_page(request):
     return render(request, "creacion_dash.html")
 
@@ -132,4 +137,76 @@ def crear_config(request):
 
 def sendCrear_config(data):
     request = requests.post('http://127.0.0.1:5000/crear-configuracion', json={'data': data})
+    return json.loads(request.text)
+
+def crear_Categoria(request):
+    message =''
+    configuraciones = requests.get('http://127.0.0.1:5000/get-configuraciones')
+    data = configuraciones.json()
+    
+    if request.method == 'POST':
+        configuraciones =[]
+        nombre = request.POST['nombre']
+        descripcion = request.POST['descripcion']
+        id = request.POST['id']
+        carga = request.POST['carga']
+        for config  in data:
+            if  config['id'] in request.POST:
+                configuracion = request.POST[config['id']]
+                id_config={
+                    'id':configuracion
+                }
+                configuraciones.append(id_config)
+
+        print(configuraciones)
+        dato ={
+           'id':id,
+           'nombre':nombre,
+           'descripcion':descripcion,
+           'carga':carga,
+           'configuraciones':configuraciones
+        }
+        print(dato)
+        response = sendCrear_Categ(dato)
+        message = response['message']
+        return render(request, "crear-config.html", {'message':message})    
+
+    else:
+        configuraciones = requests.get('http://127.0.0.1:5000/get-configuraciones')
+        data = configuraciones.json()
+        return render(request, "crear-categ.html", {'message':message,'configuraciones':data})
+    
+def sendCrear_Categ(data):
+    request = requests.post('http://127.0.0.1:5000/crear-categ', json={'data': data})
+    return json.loads(request.text)
+
+def crear_Instance(request):
+    message =''
+    configuraciones = requests.get('http://127.0.0.1:5000/get-configuraciones')
+    data = configuraciones.json()
+    
+    if request.method == 'POST':
+        nombre = request.POST['nombre_instance']
+        id = request.POST['id']
+        fecha = request.POST['fecha_inicial']
+        configuracion = request.POST['configuracion']
+        
+        dato ={
+           'id':id,
+           'nombre':nombre,
+           'fecha_inicio':fecha,
+           'id_configuracion':configuracion
+        }
+        print(dato)
+        response = sendCrear_instance(dato)
+        message = response['message']
+        return render(request, "crear-instance.html", {'message':message})    
+
+    else:
+        configuraciones = requests.get('http://127.0.0.1:5000/get-configuraciones')
+        data = configuraciones.json()
+        return render(request, "crear-instance.html", {'message':message,'configuraciones':data})
+    
+def sendCrear_instance(data):
+    request = requests.post('http://127.0.0.1:5000/crear-instancia', json={'data': data})
     return json.loads(request.text)
