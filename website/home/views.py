@@ -210,3 +210,24 @@ def crear_Instance(request):
 def sendCrear_instance(data):
     request = requests.post('http://127.0.0.1:5000/crear-instancia', json={'data': data})
     return json.loads(request.text)
+
+def consultaFacturacion(request):
+    message =''
+    clientes = requests.get('http://127.0.0.1:5000/get-clientes')
+    data = clientes.json()
+    
+    return render(request, "consulta-Fact.html",{'message':message,'clientes':data})
+
+def buscar(request):
+    if request.method == 'GET':
+        nit = request.GET['id_cliente']
+        dato ={
+           'nit_cliente':nit
+        }
+        print(dato)
+        response = send_factura(dato)
+    return render(request, "factura.html",{'factura':response})
+
+def send_factura(data):
+    request = requests.post('http://127.0.0.1:5000/gen-factura', json={'data': data})
+    return json.loads(request.text)

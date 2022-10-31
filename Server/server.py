@@ -672,7 +672,112 @@ def createInstancias():
     respuesta = jsonify(Dato)
     return (respuesta)
     
+#Crear Instancia
+@app.route('/gen-factura', methods=['GET'])
+def gen_facturas():
+    global Clientes
+    global Consumos
+    global Configuraciones_glob
+    global Recursos
+    global Instancias_glob
+    
+    costo_total_consumo =0
+    #fecha_final_consumo = ''
+    consumos_cliente = []
+    costo_consumoLista =[]
+    
+    cliente_id = request.json['data']
+    nit = cliente_id['nit_cliente']
+    
+    #get consumos del cliente
+    for consumo in Consumos:
+        if consumo.nit_cliente == nit:
+            instancia_consumo = consumo.id_Instancia
+            tiempo = consumo.tiempo_consumido
+            fecha_hora = consumo.fecha_hora
+            
+            datos ={
+                'instancia': instancia_consumo,
+                'tiempo': tiempo,
+                'fecha_hora': fecha_hora
+            }
+            consumos_cliente.append(datos)
+    
+    #print(consumos_cliente)
+    
+    #get nombre del cliente
+    for clt in Clientes:
+        if clt.NIT == nit:
+            nombre = clt.nombre_cliente
+        #break
+    
+    for consumos in consumos_cliente:
+        tiempo = consumos['tiempo']
+        fecha_hora  = consumos['fecha_hora']
+        costo_totalxConsumo = 0
+        
+        for instance in Instancias_glob:
+            
+            if consumos['instancia'] == instance.id_instance:
+                configuracion_id = instance.id_configuracion
+            #break
+        
+        for config in Configuraciones_glob:
+            if configuracion_id == config.id_config:
+                recursos_lista = config.lista_recursos
+                
+                costo_totalConfig = 0
 
+                for rec in recursos_lista:
+                    id_recurso = rec['id_recurso']
+                    cantidad = rec['cantidad']
+                    
+                    #print('recurso')
+                    #print(id_recurso)
+                    
+                    for recursoG in Recursos:
+                        if recursoG.id_recurso == id_recurso:
+                            costoxHora =  recursoG.costo
+                            #print('costo por hora recurso')
+                            #print(costoxHora)
+                        #break
+                    
+                    valor_recursoxHora =   float(costoxHora) * int(cantidad)
+                    #print('valor por recurso')
+                    #print(valor_recursoxHora)
+                    costo_totalConfig = costo_totalConfig + valor_recursoxHora
+                    #print('costo total de la config')
+                    #print(costo_totalConfig)
+            #break
+        
+        costo_totalxConsumo =  costo_totalConfig * float(tiempo)
+        datos ={
+            'costo_consumo':round(costo_totalxConsumo,4),
+            'fecha_hora':fecha_hora
+        }
+        costo_consumoLista.append(datos)
+    print(costo_consumoLista)
+    
+    for datos in costo_consumoLista:
+        costo = datos['costo_consumo']
+        
+        costo_total_consumo = costo_total_consumo + costo
+        fecha_final_consumo = str(datos['fecha_hora'])
+       #fecha_final_consumo = fecha.split('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ','')
+        
+        
+    Dato = {
+        'nombre': nombre,
+        'nit':nit,
+        'monto_total':round(costo_total_consumo,4),
+        'fecha_consumo':fecha_final_consumo,
+        'state':200
+    }
+    respuesta = jsonify(Dato)
+    return (respuesta)
+              
+    
+    
     
 
 if __name__ == '__main__':
