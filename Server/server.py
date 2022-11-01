@@ -23,6 +23,7 @@ from Clases.Recurso import Recurso
 #py manage.py --help
 
 
+
 app = Flask(__name__)
 CORS(app)
 api = Api(app)
@@ -36,6 +37,139 @@ Consumos =[] #lista
 Configuraciones_glob = []
 Instancias_glob=[]
 
+
+def create_configFile(xmlFile):
+    with open('database.xml', 'w') as f:
+        f.write(xmlFile)
+
+def loadDataBase_config():
+    try:
+        config_files = minidom.parse('database.xml')
+        listRecursos_gen = config_files.getElementsByTagName('listaRecursos')[0]
+        recursos_list = listRecursos_gen.getElementsByTagName('recurso')
+        count_recursos = 0
+        for recurso_gen in recursos_list:
+           count_recursos += 1
+           id_recurso = recurso_gen.attributes['id'].value
+           nombre = recurso_gen.getElementsByTagName('nombre')[0]
+           abreviatura = recurso_gen.getElementsByTagName('abreviatura')[0]
+           metrica = recurso_gen.getElementsByTagName('metrica')[0]
+           tipo = recurso_gen.getElementsByTagName('tipo')[0]
+           valorXhora = recurso_gen.getElementsByTagName('valorXhora')[0]
+           new_Recurso = Recurso(id_recurso,nombre.firstChild.data,abreviatura.firstChild.data,metrica.firstChild.data,tipo.firstChild.data,valorXhora.firstChild.data)
+           Recursos.append(new_Recurso)
+
+        # -- categorias generales -- 
+        listCateg_gen = config_files.getElementsByTagName('listaCategorias')[0]
+        categorias = listCateg_gen.getElementsByTagName('categoria')
+        count_categ = 0
+        for cat in categorias:
+            Configuraciones = [] #lista
+
+            count_categ += 1
+            id_categoria = cat.attributes['id'].value
+            nombre_categoria = cat.getElementsByTagName('nombre')[0]
+            descr_categoria = cat.getElementsByTagName('descripcion')[0]
+            carga_de_trabajo = cat.getElementsByTagName('cargaTrabajo')[0]
+            list_config = cat.getElementsByTagName('configuracion')
+
+            #configuraciones por Categoria
+            count_config = 0
+            for config in list_config:
+                count_config += 1
+                id_config = config.attributes['id'].value
+                nombre_config = config.getElementsByTagName('nombre')[0]
+                dscr_config = config.getElementsByTagName('descripcion')[0]
+
+                recursosCat = config.getElementsByTagName('recurso')
+                #lista de recursos por configuracion (id's y cantidad)
+                list_rec_config = []
+                i=0
+                for rec_config in recursosCat:
+                    id_recurso = rec_config.attributes['id'].value
+                    nodo = config.getElementsByTagName('recurso')[i]
+                    recursos ={
+                        "id_recurso":id_recurso,
+                        "cantidad":nodo.firstChild.data
+                    }
+                    i+=1
+                    list_rec_config.append(recursos)
+
+                new_config = Configuracion(id_config,nombre_config.firstChild.data,dscr_config.firstChild.data,list_rec_config)
+                Configuraciones.append(new_config)
+                Configuraciones_glob.append(new_config)
+
+            new_categoria = Categoria(id_categoria,nombre_categoria.firstChild.data,descr_categoria.firstChild.data,carga_de_trabajo.firstChild.data,Configuraciones)
+            Categorias.append(new_categoria) 
+
+        #clientes
+        clientes = config_files.getElementsByTagName('cliente')
+        count_clientes = 0 
+        for clt in clientes:
+            count_clientes += 1
+            Instancias = [] #lista
+
+            NIT = clt.attributes['nit'].value
+            nombre_cliente = clt.getElementsByTagName('nombre')[0]
+            usuario = clt.getElementsByTagName('usuario')[0]
+            clave = clt.getElementsByTagName('clave')[0]
+            direccion = clt.getElementsByTagName('direccion')[0]
+            email = clt.getElementsByTagName('correoElectronico')[0]
+            instancias = clt.getElementsByTagName('instancia')
+
+            for ins in instancias:
+                id_instance = ins.attributes['id'].value
+                id_configuracion = ins.getElementsByTagName('idConfiguracion')[0]
+                nombre = ins.getElementsByTagName('nombre')[0]
+                fecha_inicio = ins.getElementsByTagName('fechaInicio')[0]
+                estado = ins.getElementsByTagName('estado')[0]
+                if estado.firstChild.data == 'Cancelada':
+                    fecha_finalOn = ins.getElementsByTagName('fechaFinal')[0]
+                    fecha_final = fecha_finalOn.firstChild.data
+                else:
+                    fecha_final = '--'
+
+                new_instancia = Instancia(id_instance,id_configuracion.firstChild.data,nombre.firstChild.data,fecha_inicio.firstChild.data,fecha_final,estado.firstChild.data)
+                Instancias.append(new_instancia)
+                Instancias_glob.append(new_instancia)
+
+            new_cliente = Cliente(NIT,nombre_cliente.firstChild.data,usuario.firstChild.data,clave.firstChild.data,direccion.firstChild.data,email.firstChild.data,Instancias)
+            Clientes.append(new_cliente)
+           
+    except FileNotFoundError:
+        print("base de datos no inicializada")
+
+def create_consumeFile(xmlFile):
+    with open('database_consume.xml', 'w') as f:
+        f.write(xmlFile)
+
+
+def loadDataBase_consume():
+    try:
+        consume_files = minidom.parse('database_consume.xml')
+        consumos = consume_files.getElementsByTagName('listadoConsumos')[0]
+        consum_list = consumos.getElementsByTagName('consumo')
+        count_consumos = 0
+        for cns in consum_list:
+            count_consumos += 1
+            cliente_nit = cns.attributes['nitCliente'].value
+            instance_id = cns.attributes['idInstancia'].value
+            tiempo_consum = cns.getElementsByTagName('tiempo')[0]
+            fechaHora = cns.getElementsByTagName('fechaHora')[0]
+            new_consumo = Consumo(cliente_nit,instance_id,tiempo_consum.firstChild.data,fechaHora.firstChild.data)
+            Consumos.append(new_consumo)
+       
+           
+    except FileNotFoundError:
+        print("base de datos de consumo no inicializada")
+        
+
+
+@app.before_first_request
+def before_first_request_func():
+    loadDataBase_config()
+    loadDataBase_consume()
+
 #subir archivo Configuraciones en XML  -----
 @app.route('/post-config', methods=['POST'])
 def PostListaConfig():
@@ -47,9 +181,9 @@ def PostListaConfig():
     
     #get xml info
     configuracion = request.json['data']
+    create_configFile(configuracion)
     #parse xml info
     config_files =  minidom.parseString(configuracion)
-    
     #--recursos generales--
     
     listRecursos_gen = config_files.getElementsByTagName('listaRecursos')[0]
@@ -182,6 +316,7 @@ def postConsumos():
     
     #get xml info
     consumos = request.json['data']
+    create_consumeFile(consumos)
     
     consum_files =  minidom.parseString(consumos)
     
@@ -341,6 +476,26 @@ def get_configs():
     respuesta = jsonify(list_configuraciones)
     return (respuesta)
 
+#obtener instancias
+@app.route('/get-instancias', methods=['GET'])
+def get_instances():
+    global Instancias_glob
+    
+    list_instancias = []
+    
+    for inst in Instancias_glob:
+        Dato={
+            'id':inst.id_instance,
+            'configuracion':inst.id_configuracion,
+            'nombre':inst.nombre_instance,
+            'fecha_inicio':inst.fecha_inicio,
+            'fecha_final':inst.fecha_final,
+            'estado':inst.estado_instancia
+        }
+        list_instancias.append(Dato)
+    respuesta = jsonify(list_instancias)
+    return (respuesta)
+
 #Crear Configuracion django
 @app.route('/crear-configuracion', methods=['POST'])
 def createConfiguracion():
@@ -428,7 +583,7 @@ def createRecurso():
     respuesta = jsonify(Dato)
     return (respuesta)
 
-#Crear Categoria postman
+#Crear Categoria
 @app.route('/crear-categ', methods=['POST'])
 def createCateg():
     global Categorias
@@ -459,6 +614,190 @@ def createCateg():
     respuesta = jsonify(Dato)
     return (respuesta)
 
+
+#Crear Clientes
+@app.route('/crear-clientes', methods=['POST'])
+def createClientes():
+    global Clientes
+    global Instancias_glob
+    
+    clientes = request.json['data']
+    
+    nit = clientes['nit']
+    nombre = clientes['nombre']
+    user = clientes['user']
+    password = clientes['password']
+    direccion = clientes['direccion']
+    email = clientes['email']
+    instancias = clientes['instancias']
+    
+    lista_inst = []
+    
+    for inst in instancias:
+        for inst_g in Instancias_glob:
+            if inst['id'] == inst_g.id_instance:
+                lista_inst.append(inst_g)
+                break
+    
+    nuevoCliente = Cliente(nit,nombre,user, password,direccion,email,lista_inst)
+    Clientes.append(nuevoCliente)
+    Dato = {
+            'message': 'Cliente agregado Exitosamente',
+            'state':200
+            }
+    respuesta = jsonify(Dato)
+    return (respuesta)
+
+#Crear Instancia
+@app.route('/crear-instancia', methods=['POST'])
+def createInstancias():
+    global Instancias_glob
+    
+    instancias = request.json['data']
+    
+    id = instancias['id']
+    configuracion = instancias['id_configuracion']
+    nombre = instancias['nombre']
+    fecha_inicio = instancias['fecha_inicio']
+    fecha_final = '--'
+    estado = 'Vigente'
+    
+    nuevaInstancia = Instancia(id,configuracion,nombre,fecha_inicio,fecha_final,estado)
+    Instancias_glob.append(nuevaInstancia)
+    
+    Dato = {
+                'message': 'Instancia agregada Exitosamente',
+                'state':200
+            }
+    respuesta = jsonify(Dato)
+    return (respuesta)
+    
+#Crear Instancia
+@app.route('/gen-factura', methods=['GET'])
+def gen_facturas():
+    global Clientes
+    global Consumos
+    global Configuraciones_glob
+    global Recursos
+    global Instancias_glob
+    
+    costo_total_consumo =0
+    consumos_cliente = []
+    costo_consumoLista =[]
+    consumo_individual =[]
+    existe = False
+    
+    cliente_id = request.json['data']
+    nit = cliente_id['nit_cliente']
+    
+    #get consumos del cliente
+    for consumo in Consumos:
+        if consumo.nit_cliente == nit:
+            existe = True
+            instancia_consumo = consumo.id_Instancia
+            tiempo = consumo.tiempo_consumido
+            fecha_hora = consumo.fecha_hora
+            
+            datos ={
+                'instancia': instancia_consumo,
+                'tiempo': tiempo,
+                'fecha_hora': fecha_hora
+            }
+            consumos_cliente.append(datos)
+        
+    if existe == False:
+        dato={
+            'message': 'no hay factura para este cliente',
+            'state':400
+        }
+        respuesta = jsonify(dato)
+        return (respuesta)    
+            
+    
+    #print(consumos_cliente)
+    
+    #get nombre del cliente
+    for clt in Clientes:
+        if clt.NIT == nit:
+            nombre = clt.nombre_cliente
+        #break
+    
+    for consumos in consumos_cliente:
+        tiempo = consumos['tiempo']
+        fecha_hora  = consumos['fecha_hora']
+        costo_totalxConsumo = 0
+        
+        for instance in Instancias_glob:
+            
+            if consumos['instancia'] == instance.id_instance:
+                configuracion_id = instance.id_configuracion
+            #break
+        
+        for config in Configuraciones_glob:
+            if configuracion_id == config.id_config:
+                recursos_lista = config.lista_recursos
+                
+                costo_totalConfig = 0
+
+                for rec in recursos_lista:
+                    id_recurso = rec['id_recurso']
+                    cantidad = rec['cantidad']
+                    
+                    #print('recurso')
+                    #print(id_recurso)
+                    
+                    for recursoG in Recursos:
+                        if recursoG.id_recurso == id_recurso:
+                            costoxHora =  recursoG.costo
+                            #print('costo por hora recurso')
+                            #print(costoxHora)
+                        #break
+                    
+                    valor_recursoxHora =   float(costoxHora) * int(cantidad)
+                    #print('valor por recurso')
+                    #print(valor_recursoxHora)
+                    costo_totalConfig = costo_totalConfig + valor_recursoxHora
+                    #print('costo total de la config')
+                    #print(costo_totalConfig)
+            #break
+        
+        costo_totalxConsumo =  costo_totalConfig * float(tiempo)
+        datos ={
+            'costo_consumo':round(costo_totalxConsumo,4),
+            'fecha_hora':fecha_hora
+        }
+        consumo_ind ={
+            'tiempo': tiempo,
+            'costo':round(costo_totalxConsumo,4)
+        }
+        costo_consumoLista.append(datos)
+        consumo_individual.append(consumo_ind)
+        
+        
+    print(costo_consumoLista)
+    
+    for datos in costo_consumoLista:
+        costo = datos['costo_consumo']
+        
+        costo_total_consumo = costo_total_consumo + costo
+        fecha_final_consumo = str(datos['fecha_hora'])
+       #fecha_final_consumo = fecha.split('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ','')
+        
+        
+    Dato = {
+        'nombre': nombre,
+        'nit':nit,
+        'monto_total':round(costo_total_consumo,4),
+        'fecha_consumo':fecha_final_consumo,
+        'consumo':consumo_individual,
+        'state':200
+    }
+    respuesta = jsonify(Dato)
+    return (respuesta)
+              
+    
+    
+    
 
 if __name__ == '__main__':
     app.config['DEBUG'] = True
