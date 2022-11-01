@@ -12,6 +12,7 @@ urlpatterns = [
     path('crear_recurso', views.crear_recurso, name = 'crear_recurso'),
     path('crear_config', views.crear_config, name = 'crear_config'),
     path('crear_categ', views.crear_Categoria, name = 'crear_categ'),
+    path('crear_cliente', views.crear_Cliente, name = 'crear_cliente'),
     path('crear_instance', views.crear_Instance, name = 'crear_instance'),
     path('consulta_facturacion', views.consultaFacturacion, name = 'consulta_facturacion'),
     path('buscar', views.buscar),

@@ -635,7 +635,7 @@ def createClientes():
     
     for inst in instancias:
         for inst_g in Instancias_glob:
-            if inst['id'] == Instancias_glob.id_config:
+            if inst['id'] == inst_g.id_instance:
                 lista_inst.append(inst_g)
                 break
     
@@ -682,9 +682,10 @@ def gen_facturas():
     global Instancias_glob
     
     costo_total_consumo =0
-    #fecha_final_consumo = ''
     consumos_cliente = []
     costo_consumoLista =[]
+    consumo_individual =[]
+    existe = False
     
     cliente_id = request.json['data']
     nit = cliente_id['nit_cliente']
@@ -692,6 +693,7 @@ def gen_facturas():
     #get consumos del cliente
     for consumo in Consumos:
         if consumo.nit_cliente == nit:
+            existe = True
             instancia_consumo = consumo.id_Instancia
             tiempo = consumo.tiempo_consumido
             fecha_hora = consumo.fecha_hora
@@ -702,6 +704,15 @@ def gen_facturas():
                 'fecha_hora': fecha_hora
             }
             consumos_cliente.append(datos)
+        
+    if existe == False:
+        dato={
+            'message': 'no hay factura para este cliente',
+            'state':400
+        }
+        respuesta = jsonify(dato)
+        return (respuesta)    
+            
     
     #print(consumos_cliente)
     
@@ -755,7 +766,14 @@ def gen_facturas():
             'costo_consumo':round(costo_totalxConsumo,4),
             'fecha_hora':fecha_hora
         }
+        consumo_ind ={
+            'tiempo': tiempo,
+            'costo':round(costo_totalxConsumo,4)
+        }
         costo_consumoLista.append(datos)
+        consumo_individual.append(consumo_ind)
+        
+        
     print(costo_consumoLista)
     
     for datos in costo_consumoLista:
@@ -771,6 +789,7 @@ def gen_facturas():
         'nit':nit,
         'monto_total':round(costo_total_consumo,4),
         'fecha_consumo':fecha_final_consumo,
+        'consumo':consumo_individual,
         'state':200
     }
     respuesta = jsonify(Dato)

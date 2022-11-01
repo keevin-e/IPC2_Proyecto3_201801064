@@ -180,6 +180,52 @@ def sendCrear_Categ(data):
     request = requests.post('http://127.0.0.1:5000/crear-categ', json={'data': data})
     return json.loads(request.text)
 
+def crear_Cliente(request):
+    message =''
+    instancias = requests.get('http://127.0.0.1:5000/get-instancias')
+    data = instancias.json()
+    
+    if request.method == 'POST':
+        instancias_list =[]
+        nit = request.POST['nit']
+        nombre = request.POST['nombre']
+        user = request.POST['user']
+        password = request.POST['password']
+        direccion = request.POST['direccion']
+        email = request.POST['email']
+        for inst  in data:
+            if  inst['id'] in request.POST:
+                instancia = request.POST[inst['id']]
+                id_inst={
+                    'id':instancia
+                }
+                instancias_list.append(id_inst)
+
+        print(instancias_list)
+        dato ={
+           'nit':nit,
+           'nombre':nombre,
+           'user':user,
+           'email':email,
+           'password':password,
+           'direccion':direccion,
+           'instancias':instancias_list
+        }
+        print(dato)
+        response = sendCrear_Cliente(dato)
+        message = response['message']
+        return render(request, "crear-cliente.html", {'message':message})    
+
+    else:
+        instancias = requests.get('http://127.0.0.1:5000/get-instancias')
+        data = instancias.json()
+        return render(request, "crear-cliente.html", {'message':message,'instancias':data})
+
+def sendCrear_Cliente(data):
+    request = requests.post('http://127.0.0.1:5000/crear-clientes', json={'data': data})
+    return json.loads(request.text)
+
+
 def crear_Instance(request):
     message =''
     configuraciones = requests.get('http://127.0.0.1:5000/get-configuraciones')
@@ -224,10 +270,10 @@ def buscar(request):
         dato ={
            'nit_cliente':nit
         }
-        print(dato)
         response = send_factura(dato)
+        print(response)
     return render(request, "factura.html",{'factura':response})
 
 def send_factura(data):
-    request = requests.post('http://127.0.0.1:5000/gen-factura', json={'data': data})
+    request = requests.get('http://127.0.0.1:5000/gen-factura', json={'data': data})
     return json.loads(request.text)
